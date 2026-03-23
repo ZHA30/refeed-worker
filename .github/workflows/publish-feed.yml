@@ -1,0 +1,133 @@
+name: Publish Feeds
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/publish-feed.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'config/**'
+      - '!state/**'
+  workflow_dispatch:
+    inputs:
+      route:
+        description: 'Optional scoped route'
+        required: false
+        type: string
+      mode:
+        description: 'Publish mode'
+        required: false
+        type: choice
+        default: incremental
+        options:
+          - incremental
+          - full-refresh
+      fetch_concurrency:
+        description: 'Global fetch concurrency'
+        required: false
+        type: string
+        default: '5'
+      per_host_concurrency:
+        description: 'Per-host fetch concurrency'
+        required: false
+        type: string
+        default: '2'
+      config_repository:
+        description: 'Private config/state repository slug'
+        required: false
+        type: string
+  schedule:
+    - cron: '7 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-feed
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout external config repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.config_repository || github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: data-repo
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workflow dependencies
+        run: npm ci
+
+      - name: Build runtime config
+        env:
+          REFEED_RUNTIME_CONFIG_PATH: build/config.runtime.json
+        run: >
+          node .github/scripts/build-runtime-config.mjs
+          --config-root=data-repo/config
+          --output=${{ env.REFEED_RUNTIME_CONFIG_PATH }}
+
+      - name: Generate static feeds into feed root
+        env:
+          REFEED_ROUTE: ${{ github.event.inputs.route || '' }}
+          REFEED_MODE: ${{ github.event.inputs.mode || 'incremental' }}
+          REFEED_REPORT_PATH: build/feed-report.json
+          REFEED_FETCH_CONCURRENCY: ${{ github.event.inputs.fetch_concurrency || '5' }}
+          REFEED_FETCH_PER_HOST_CONCURRENCY: ${{ github.event.inputs.per_host_concurrency || '2' }}
+        run: >
+          node .github/scripts/publish-feeds.mjs
+          --config=build/config.runtime.json
+          --state-dir=data-repo/state
+          --output-dir=dist-feed
+          --existing-dir=data-repo/feeds
+          --route=${{ github.event.inputs.route || '' }}
+          --mode=${{ github.event.inputs.mode || 'incremental' }}
+          --fetch-concurrency=${{ github.event.inputs.fetch_concurrency || '5' }}
+          --per-host-concurrency=${{ github.event.inputs.per_host_concurrency || '2' }}
+          --report-path=${{ env.REFEED_REPORT_PATH }}
+
+      - name: Write run summary
+        if: always()
+        run: |
+          [ -f build/feed-report.json ] || exit 0
+          node --input-type=module - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync('build/feed-report.json', 'utf8'));
+          console.log(`# Publish summary`);
+          console.log('');
+          console.log(`- Enabled rules: ${report.totals.enabled}`);
+          console.log(`- Successful rules: ${report.totals.succeeded}`);
+          console.log(`- Failed rules: ${report.totals.failed}`);
+          console.log(`- New items: ${report.totals.newItems}`);
+          console.log(`- Deleted items: ${report.totals.deletedItems}`);
+          console.log(`- Output items: ${report.totals.outputItems}`);
+          if ((report.failedRoutes ?? []).length > 0) {
+            console.log('');
+            console.log('## Failed routes');
+            console.log('');
+            for (const entry of report.failedRoutes) {
+              console.log(`- \`${entry.route}\`: ${entry.error}`);
+            }
+          }
+          EOF
+
+      - name: Sync state and feeds back to data repository
+        run: |
+          bash .github/scripts/sync-data-repo.sh state dist-feed data-repo "chore: refresh feed data"
