@@ -119,14 +119,6 @@ jobs:
           console.log(`- New items: ${report.totals.newItems}`);
           console.log(`- Deleted items: ${report.totals.deletedItems}`);
           console.log(`- Output items: ${report.totals.outputItems}`);
-          if ((report.failedRoutes ?? []).length > 0) {
-            console.log('');
-            console.log('## Failed routes');
-            console.log('');
-            for (const entry of report.failedRoutes) {
-              console.log(`- \`${entry.route}\`: ${entry.error}`);
-            }
-          }
           EOF
 
       - name: Sync state and feeds back to data repository

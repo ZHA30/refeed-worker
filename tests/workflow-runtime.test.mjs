@@ -74,7 +74,8 @@ test('publish workflow keeps branch publish and minimal summary', async () => {
 
   assert.match(workflow, /- name: Write run summary/u);
   assert.match(workflow, /Enabled rules: \$\{report\.totals\.enabled\}/u);
-  assert.match(workflow, /Failed routes/u);
+  assert.doesNotMatch(workflow, /Failed routes/u);
+  assert.doesNotMatch(workflow, /entry\.route/u);
   assert.doesNotMatch(workflow, /entry\.source/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
   assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo/u);

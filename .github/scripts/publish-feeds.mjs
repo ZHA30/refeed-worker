@@ -710,8 +710,6 @@ async function processRouteEntry({
     await writeFile(outputPath, payload, 'utf8');
     const publishedState = markRouteStatePublished(retainedState, limitedFeed.itemIds, now);
     await saveRouteState(stateDir, publishedState);
-    process.stdout.write(`generated ${rule.route} -> ${routeToFeedPath(rule.route)}\n`);
-
     return {
       status: 'success',
       route: rule.route,
@@ -731,8 +729,6 @@ async function processRouteEntry({
       stage,
     });
     await saveRouteState(stateDir, failedState);
-    process.stderr.write(`skipped ${rule.route}: ${sanitizedError}\n`);
-
     return {
       status: 'failed',
       route: rule.route,
