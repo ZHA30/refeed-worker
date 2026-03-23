@@ -31,7 +31,7 @@ rm -rf "${target_feed_dir}"
 mkdir -p "${target_feed_dir}"
 cp -R "${source_feed_dir}/." "${target_feed_dir}/"
 
-if [[ -n "${source_readme_file}" && -f "${source_readme_file}" ]]; then
+if [[ -n "${source_readme_file}" && -f "${source_readme_file}" && "$(realpath "${source_readme_file}")" != "$(realpath -m "${target_readme_file}")" ]]; then
   cp "${source_readme_file}" "${target_readme_file}"
 fi
 
