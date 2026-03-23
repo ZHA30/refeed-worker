@@ -49,6 +49,7 @@ test('publish workflow passes concurrency env values to publish-feeds', async ()
 test('publish workflow checks out the data repository and writes state plus feeds back to it', async () => {
   const workflow = await readWorkflow();
 
+  assert.match(workflow, /jobs:\s+publish:\s+if: \$\{\{ github\.event\.inputs\.config_repository != '' \|\| vars\.DATA_REPOSITORY != '' \}\}/u);
   assert.match(workflow, /- name: Checkout external config repository/u);
   assert.match(workflow, /repository: \$\{\{ github\.event\.inputs\.config_repository \|\| vars\.DATA_REPOSITORY \|\| github\.repository \}\}/u);
   assert.match(workflow, /token: \$\{\{ secrets\.REFEED_DATA_REPO_TOKEN \}\}/u);
@@ -74,6 +75,7 @@ test('publish workflow keeps branch publish and minimal summary', async () => {
   assert.match(workflow, /- name: Write run summary/u);
   assert.match(workflow, /Enabled rules: \$\{report\.totals\.enabled\}/u);
   assert.match(workflow, /Failed routes/u);
+  assert.doesNotMatch(workflow, /entry\.source/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
   assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo/u);
 });

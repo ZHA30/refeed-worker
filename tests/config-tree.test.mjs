@@ -8,6 +8,7 @@ import {
   buildRuntimeConfigFromTree,
   writeRuntimeConfigFromTree,
 } from '../.github/scripts/lib/config-tree.mjs';
+import { redactSensitiveText } from '../.github/scripts/lib/redaction.mjs';
 import { loadRules } from '../.github/scripts/lib/rules.mjs';
 
 async function writeJson(filePath, payload) {
@@ -96,4 +97,16 @@ test('config tree rejects feed.source in directory feed.json defaults', async ()
     () => buildRuntimeConfigFromTree(configRoot),
     /must not define feed\.source/u
   );
+});
+
+test('redaction hides rss urls and absolute paths from config errors', () => {
+  const message = redactSensitiveText(
+    'unexpected root-level config file: /tmp/run/data-repo/config/config.json source=https://example.com/private.xml?token=abc',
+    { configRoot: '/tmp/run/data-repo/config' }
+  );
+
+  assert.doesNotMatch(message, /https?:\/\//u);
+  assert.doesNotMatch(message, /\/tmp\/run/u);
+  assert.match(message, /config\/config\.json/u);
+  assert.match(message, /<redacted-url>/u);
 });

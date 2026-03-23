@@ -38,6 +38,7 @@ import {
   summarizeItemChanges,
   syncRuleState,
 } from './lib/state.mjs';
+import { redactSensitiveText, sanitizeErrorMessage } from './lib/redaction.mjs';
 
 const parser = new XMLParser({
   attributeNamePrefix: '@_',
@@ -603,9 +604,7 @@ async function fetchOnce(url, timeoutMs, fetchImpl, curlExecFile) {
 }
 
 function buildRetryFailureError(retries, lastError) {
-  return new Error(
-    `failed after ${retries} attempt(s): ${lastError?.message ?? String(lastError)}`
-  );
+  return new Error(`failed after ${retries} attempt(s): ${sanitizeErrorMessage(lastError)}`);
 }
 
 function countPreservedFiles(outputDir) {
@@ -650,6 +649,7 @@ async function processRouteEntry({
   curlExecFile,
 }) {
   const { rule, outputPath, existingState } = entry;
+  const redactionOptions = {};
   await ensureDirectory(path.dirname(outputPath));
   const now = new Date().toISOString();
   let stage = 'fetch';
@@ -710,23 +710,24 @@ async function processRouteEntry({
       outputItems: limitedFeed.itemIds.length,
     };
   } catch (error) {
+    const sanitizedError = sanitizeErrorMessage(error, redactionOptions);
     if (error?.code === 'FEED_SIZE_LIMIT') {
       await removeIfExists(outputPath);
     }
     const failedState = markRouteStateFailure(existingState, rule, {
       now,
-      error,
+      error: new Error(sanitizedError),
       attempts,
       stage,
     });
     await saveRouteState(stateDir, failedState);
-    process.stderr.write(`skipped ${rule.route}: ${error.message}\n`);
+    process.stderr.write(`skipped ${rule.route}: ${sanitizedError}\n`);
 
     return {
       status: 'failed',
       route: rule.route,
       attempts,
-      error: error.message,
+      error: sanitizedError,
     };
   }
 }
@@ -895,7 +896,9 @@ export async function publishFeeds({
         analysis.diagnostics
           .map((entry) => {
             const lineText = entry.line ? `L${entry.line}` : 'L?';
-            return `${lineText} ${entry.path}: ${entry.message}`;
+            return redactSensitiveText(`${lineText} ${entry.path}: ${entry.message}`, {
+              configRoot: path.dirname(configPath),
+            });
           })
           .join('\n') || 'fatal config diagnostics detected',
     });
@@ -1054,7 +1057,7 @@ async function main() {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
-    process.stderr.write(`${error.stack ?? error}\n`);
+    process.stderr.write(`${sanitizeErrorMessage(error)}\n`);
     process.exitCode = 1;
   });
 }

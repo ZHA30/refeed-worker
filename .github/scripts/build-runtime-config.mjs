@@ -2,6 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { writeRuntimeConfigFromTree } from './lib/config-tree.mjs';
+import { redactSensitiveText } from './lib/redaction.mjs';
 
 function getOption(name, fallback = '') {
   const prefix = `--${name}=`;
@@ -17,12 +18,12 @@ async function main() {
   );
 
   const runtimeConfig = await writeRuntimeConfigFromTree({ configRoot, outputPath });
-  process.stdout.write(
-    `compiled ${Object.keys(runtimeConfig).length} group(s) from ${configRoot} into ${outputPath}\n`
-  );
+  process.stdout.write(`compiled ${Object.keys(runtimeConfig).length} group(s) into build/config.runtime.json\n`);
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error.stack ?? error}\n`);
+  process.stderr.write(`${redactSensitiveText(error?.message ?? error, {
+    configRoot: process.cwd(),
+  })}\n`);
   process.exitCode = 1;
 });

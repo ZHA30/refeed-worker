@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { parseJsonDocument } from './config-diagnostics.mjs';
+import { redactSensitiveText } from './redaction.mjs';
 import {
   mergeConfigPatchValue,
   normalizeRoute,
@@ -243,14 +244,14 @@ async function main() {
   const configRoot = getOption('config-root', path.resolve('config'));
   const outputPath = getOption('output', path.resolve('build', 'config.runtime.json'));
   const runtimeConfig = await writeRuntimeConfigFromTree({ configRoot, outputPath });
-  process.stdout.write(
-    `compiled ${Object.keys(runtimeConfig).length} group(s) from ${configRoot} into ${outputPath}\n`
-  );
+  process.stdout.write(`compiled ${Object.keys(runtimeConfig).length} group(s) into build/config.runtime.json\n`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
-    process.stderr.write(`${error.stack ?? error}\n`);
+    process.stderr.write(`${redactSensitiveText(error?.message ?? error, {
+      configRoot: process.cwd(),
+    })}\n`);
     process.exitCode = 1;
   });
 }

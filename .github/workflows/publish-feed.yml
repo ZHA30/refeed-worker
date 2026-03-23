@@ -51,6 +51,7 @@ concurrency:
 
 jobs:
   publish:
+    if: ${{ github.event.inputs.config_repository != '' || vars.DATA_REPOSITORY != '' }}
     runs-on: ubuntu-latest
 
     steps:

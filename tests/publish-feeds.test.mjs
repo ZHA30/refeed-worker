@@ -366,9 +366,44 @@ test("publishFeeds preserves previous artifact for failed routes", async () => {
   assert.equal(report.totals.failed, 1);
   assert.equal(freshState.lastSuccessfulTitle, "Source Feed");
   assert.equal(failedState.lastError.stage, "fetch");
+  assert.doesNotMatch(report.failedRoutes[0].error, /https?:\/\//u);
   assert.equal(report.failedRoutes[0].newItems, 0);
   assert.equal(report.failedRoutes[0].deletedItems, 0);
   assert.equal(report.failedRoutes[0].outputItems, 0);
+});
+
+test("publishFeeds redacts source urls from thrown fetch errors", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "refeed-redaction-"));
+  const stateDir = path.join(tempDir, "state");
+  const outputDir = path.join(tempDir, "output");
+
+  await writeConfig(tempDir, {
+    feeds: {
+      routes: {
+        secret: {
+          feed: {
+            source: "https://example.com/private.xml?token=secret",
+          },
+        },
+      },
+    },
+  });
+
+  const report = await publishFeeds({
+    configPath: path.join(tempDir, "config.json"),
+    stateDir,
+    outputDir,
+    reportPath: path.join(tempDir, "report.json"),
+    retries: 1,
+    timeoutMs: 2000,
+    fetchImpl: async () => {
+      throw new Error("upstream failed for https://example.com/private.xml?token=secret");
+    },
+  });
+
+  assert.equal(report.totals.failed, 1);
+  assert.match(report.failedRoutes[0].error, /<redacted-url>/u);
+  assert.doesNotMatch(report.failedRoutes[0].error, /https?:\/\//u);
 });
 
 test("publishFeeds re-queues failed fetch attempts behind remaining routes", async () => {
