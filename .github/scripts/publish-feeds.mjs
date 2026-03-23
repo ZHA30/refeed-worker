@@ -549,21 +549,31 @@ async function fetchTextWithCurl(url, timeoutMs, curlExecFile) {
   const outputPath = path.join(tempDir, 'source.xml');
 
   try {
-    await curlExecFile('curl', [
-      '-L',
-      '--fail',
-      '--silent',
-      '--show-error',
-      '--max-time',
-      String(seconds),
-      '-A',
-      'refeed-workflow/0.1',
-      '-H',
-      'Accept: application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
-      '-o',
-      outputPath,
-      url,
-    ]);
+    try {
+      await curlExecFile('curl', [
+        '-L',
+        '--fail',
+        '--silent',
+        '--show-error',
+        '--max-time',
+        String(seconds),
+        '-A',
+        'refeed-workflow/0.1',
+        '-H',
+        'Accept: application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
+        '-o',
+        outputPath,
+        url,
+      ]);
+    } catch (error) {
+      const curlCode = typeof error?.code === 'number' ? error.code : null;
+      const stderr = typeof error?.stderr === 'string' ? error.stderr.trim() : '';
+      const detail = stderr ? sanitizeErrorMessage(stderr) : 'request failed';
+      if (curlCode !== null) {
+        throw new Error(`curl exited with code ${curlCode}: ${detail}`);
+      }
+      throw new Error(`curl request failed: ${detail}`);
+    }
     return readFile(outputPath, 'utf8');
   } finally {
     await rm(tempDir, { recursive: true, force: true });
