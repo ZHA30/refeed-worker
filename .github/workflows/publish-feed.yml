@@ -129,12 +129,14 @@ jobs:
           REFEED_REPORT_PATH: build/feed-report.json
           REFEED_REPOSITORY: ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}
           REFEED_WORKFLOW_REPOSITORY: ${{ github.repository }}
+          REFEED_PUBLIC_BASE_URL: ${{ vars.PUBLIC_FEED_BASE_URL || '' }}
         run: >
           node .github/scripts/build-readme.mjs
           --config build/config.runtime.json
           --state-dir data-repo/state
           --feed-dir dist-feed
           --report-path build/feed-report.json
+          --base-url ${{ vars.PUBLIC_FEED_BASE_URL || '' }}
           --repo ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}
           --workflow-repo ${{ github.repository }}
           --output data-repo/README.md
