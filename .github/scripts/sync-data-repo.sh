@@ -5,9 +5,11 @@ source_state_dir="${1:-state}"
 source_feed_dir="${2:-dist-feed}"
 target_checkout_dir="${3:-data-repo}"
 commit_message="${4:-chore: refresh feed data}"
+source_readme_file="${5:-}"
 
 target_state_dir="${target_checkout_dir}/state"
 target_feed_dir="${target_checkout_dir}/feeds"
+target_readme_file="${target_checkout_dir}/README.md"
 
 if [[ ! -d "${target_checkout_dir}" ]]; then
   echo "target checkout does not exist: ${target_checkout_dir}" >&2
@@ -29,15 +31,19 @@ rm -rf "${target_feed_dir}"
 mkdir -p "${target_feed_dir}"
 cp -R "${source_feed_dir}/." "${target_feed_dir}/"
 
+if [[ -n "${source_readme_file}" && -f "${source_readme_file}" ]]; then
+  cp "${source_readme_file}" "${target_readme_file}"
+fi
+
 cd "${target_checkout_dir}"
 
-if git diff --quiet -- state feeds; then
+if git diff --quiet -- state feeds README.md; then
   echo "no data changes detected"
   exit 0
 fi
 
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-git add state feeds
+git add state feeds README.md
 git commit -m "${commit_message}"
 git push origin HEAD

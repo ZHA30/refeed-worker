@@ -56,8 +56,11 @@ test('publish workflow checks out the data repository and writes state plus feed
   assert.match(workflow, /path: data-repo/u);
   assert.match(workflow, /--state-dir=data-repo\/state/u);
   assert.match(workflow, /--existing-dir=data-repo\/feeds/u);
+  assert.match(workflow, /- name: Build README dashboard/u);
+  assert.match(workflow, /node \.github\/scripts\/build-readme\.mjs/u);
+  assert.match(workflow, /--output data-repo\/README\.md/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
-  assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo/u);
+  assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo "chore: refresh feed data" data-repo\/README\.md/u);
 });
 
 test('publish workflow no longer references retry issues or README refresh steps', async () => {
@@ -65,7 +68,7 @@ test('publish workflow no longer references retry issues or README refresh steps
 
   assert.doesNotMatch(workflow, /issues:\s*\n\s+types:/u);
   assert.doesNotMatch(workflow, /sync-failure-issues/u);
-  assert.doesNotMatch(workflow, /README dashboard/u);
+  assert.match(workflow, /Build README dashboard/u);
   assert.doesNotMatch(workflow, /git add README\.md state/u);
 });
 
@@ -78,7 +81,7 @@ test('publish workflow keeps branch publish and minimal summary', async () => {
   assert.doesNotMatch(workflow, /entry\.route/u);
   assert.doesNotMatch(workflow, /entry\.source/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
-  assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo/u);
+  assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo "chore: refresh feed data" data-repo\/README\.md/u);
 });
 
 test('publish workflow keeps scheduled runs hourly and does not cancel active runs', async () => {

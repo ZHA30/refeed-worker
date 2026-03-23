@@ -121,6 +121,24 @@ jobs:
           console.log(`- Output items: ${report.totals.outputItems}`);
           EOF
 
+      - name: Build README dashboard
+        env:
+          REFEED_CONFIG_PATH: build/config.runtime.json
+          REFEED_STATE_DIR: data-repo/state
+          REFEED_FEED_DIR: dist-feed
+          REFEED_REPORT_PATH: build/feed-report.json
+          REFEED_REPOSITORY: ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}
+          REFEED_WORKFLOW_REPOSITORY: ${{ github.repository }}
+        run: >
+          node .github/scripts/build-readme.mjs
+          --config build/config.runtime.json
+          --state-dir data-repo/state
+          --feed-dir dist-feed
+          --report-path build/feed-report.json
+          --repo ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}
+          --workflow-repo ${{ github.repository }}
+          --output data-repo/README.md
+
       - name: Sync state and feeds back to data repository
         run: |
-          bash .github/scripts/sync-data-repo.sh data-repo/state dist-feed data-repo "chore: refresh feed data"
+          bash .github/scripts/sync-data-repo.sh data-repo/state dist-feed data-repo "chore: refresh feed data" data-repo/README.md
