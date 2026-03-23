@@ -62,7 +62,7 @@ jobs:
       - name: Checkout external config repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.event.inputs.config_repository || github.repository }}
+          repository: ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}
           token: ${{ secrets.REFEED_DATA_REPO_TOKEN }}
           path: data-repo
           fetch-depth: 1
@@ -130,4 +130,4 @@ jobs:
 
       - name: Sync state and feeds back to data repository
         run: |
-          bash .github/scripts/sync-data-repo.sh state dist-feed data-repo "chore: refresh feed data"
+          bash .github/scripts/sync-data-repo.sh data-repo/state dist-feed data-repo "chore: refresh feed data"

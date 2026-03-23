@@ -50,13 +50,13 @@ test('publish workflow checks out the data repository and writes state plus feed
   const workflow = await readWorkflow();
 
   assert.match(workflow, /- name: Checkout external config repository/u);
-  assert.match(workflow, /repository: \$\{\{ github\.event\.inputs\.config_repository \|\| github\.repository \}\}/u);
+  assert.match(workflow, /repository: \$\{\{ github\.event\.inputs\.config_repository \|\| vars\.DATA_REPOSITORY \|\| github\.repository \}\}/u);
   assert.match(workflow, /token: \$\{\{ secrets\.REFEED_DATA_REPO_TOKEN \}\}/u);
   assert.match(workflow, /path: data-repo/u);
   assert.match(workflow, /--state-dir=data-repo\/state/u);
   assert.match(workflow, /--existing-dir=data-repo\/feeds/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
-  assert.match(workflow, /sync-data-repo\.sh state dist-feed data-repo/u);
+  assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo/u);
 });
 
 test('publish workflow no longer references retry issues or README refresh steps', async () => {
@@ -75,7 +75,7 @@ test('publish workflow keeps branch publish and minimal summary', async () => {
   assert.match(workflow, /Enabled rules: \$\{report\.totals\.enabled\}/u);
   assert.match(workflow, /Failed routes/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
-  assert.match(workflow, /sync-data-repo\.sh state dist-feed data-repo/u);
+  assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo/u);
 });
 
 test('publish workflow keeps scheduled runs hourly and does not cancel active runs', async () => {
