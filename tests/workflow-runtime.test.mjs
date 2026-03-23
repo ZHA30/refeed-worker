@@ -51,6 +51,7 @@ test('publish workflow checks out the data repository and writes state plus feed
 
   assert.match(workflow, /- name: Checkout external config repository/u);
   assert.match(workflow, /repository: \$\{\{ github\.event\.inputs\.config_repository \|\| github\.repository \}\}/u);
+  assert.match(workflow, /token: \$\{\{ secrets\.REFEED_DATA_REPO_TOKEN \}\}/u);
   assert.match(workflow, /path: data-repo/u);
   assert.match(workflow, /--state-dir=data-repo\/state/u);
   assert.match(workflow, /--existing-dir=data-repo\/feeds/u);
