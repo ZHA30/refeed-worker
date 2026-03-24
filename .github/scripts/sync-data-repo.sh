@@ -46,4 +46,11 @@ git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add state feeds README.md
 git commit -m "${commit_message}"
-git push origin HEAD
+
+if git push origin HEAD; then
+  exit 0
+fi
+
+git fetch origin main
+git rebase origin/main
+git push origin HEAD:main

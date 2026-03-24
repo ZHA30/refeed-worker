@@ -802,7 +802,7 @@ export async function buildReadme({
   };
 }
 
-function readArgs(argv) {
+export function readArgs(argv) {
   const options = {
     configPath: process.env.REFEED_CONFIG_PATH ?? routeToConfigPath(),
     stateDir: process.env.REFEED_STATE_DIR ?? "state",

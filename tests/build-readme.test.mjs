@@ -8,6 +8,7 @@ import {
   buildFeedUrl,
   buildReadme,
   loadRules,
+  readArgs,
   renderReadme,
   routeToConfigPath,
   routeToFeedPath,
@@ -61,13 +62,39 @@ function emptyGithubFetch(url) {
 }
 
 test("route helpers map routes to config and feed paths", () => {
-  assert.equal(routeToConfigPath("hackernews/main"), "config/config.json");
-  assert.equal(routeToRulePath("nga"), "config/config.json");
+  assert.equal(routeToConfigPath("hackernews/main"), "config");
+  assert.equal(routeToRulePath("nga"), "config");
   assert.equal(routeToFeedPath("hackernews/main"), "hackernews/main.xml");
   assert.equal(
     buildFeedUrl("hackernews/main", "https://feeds.example.com/"),
     "https://feeds.example.com/hackernews/main.xml"
   );
+});
+
+test("readArgs keeps base-url, repo, and workflow-repo values isolated", () => {
+  const options = readArgs([
+    "--config",
+    "build/config.runtime.json",
+    "--state-dir",
+    "data-repo/state",
+    "--feed-dir",
+    "dist-feed",
+    "--report-path",
+    "build/feed-report.json",
+    "--base-url",
+    "https://refeed.pages.dev",
+    "--repo",
+    "ZHA30/refeed",
+    "--workflow-repo",
+    "ZHA30/refeed-worker",
+    "--output",
+    "data-repo/README.md",
+  ]);
+
+  assert.equal(options.baseUrl, "https://refeed.pages.dev");
+  assert.equal(options.repoSlug, "ZHA30/refeed");
+  assert.equal(options.workflowRepoSlug, "ZHA30/refeed-worker");
+  assert.equal(options.outputFile, "data-repo/README.md");
 });
 
 test("loadRules preserves config insertion order", async () => {
