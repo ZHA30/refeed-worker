@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -38,7 +39,7 @@ export function buildFeedUrl(route, baseUrl) {
 }
 
 function slugifyGroupName(value) {
-  return encodeURIComponent(value.trim());
+  return createHash("sha1").update(value.trim()).digest("hex").slice(0, 12);
 }
 
 function buildGroupCatalogUrl(groupName, baseUrl) {
@@ -869,7 +870,7 @@ export async function buildReadme({
   for (const [groupName, groupRules] of groupRulesByGroup(rules)) {
     const groupReadmePath = path.join(configRootDir, groupName, "README.md");
     const groupCatalogPath = feedDir
-      ? path.join(path.resolve(feedDir), "groups", `${groupName}.html`)
+      ? path.join(path.resolve(feedDir), "groups", `${slugifyGroupName(groupName)}.html`)
       : "";
     const groupReadme = renderGroupReadme({
       groupName,
