@@ -45,7 +45,7 @@ function buildGroupCatalogUrl(groupName, baseUrl) {
   if (!baseUrl || !groupName) {
     return "";
   }
-  return `${baseUrl.replace(/\/+$/u, "")}/groups/${slugifyGroupName(groupName)}.html`;
+  return `${baseUrl.replace(/\/+$/u, "")}/feeds/groups/${slugifyGroupName(groupName)}.html`;
 }
 
 function buildGroupConfigReadmePath(groupName) {

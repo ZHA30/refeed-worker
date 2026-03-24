@@ -192,7 +192,7 @@ test("renderReadme preserves provided rule order and keeps issue details out of 
   assert.match(content, /\| 1 \| 1 \| 8 \| 5 \|/u);
   assert.match(content, /\| 1 \| 0 \| 3 \| 0 \|/u);
   assert.match(content, /\[内部清单\]\(https:\/\/github\.com\/owner\/repo\/blob\/main\/config\/alpha\/README\.md\)/u);
-  assert.match(content, /\[公开清单\]\(https:\/\/feeds\.example\.com\/groups\/alpha\.html\)/u);
+  assert.match(content, /\[公开清单\]\(https:\/\/feeds\.example\.com\/feeds\/groups\/alpha\.html\)/u);
 });
 
 test("buildReadme prefers feed xml titles and surfaces fatal config diagnostics", async () => {
