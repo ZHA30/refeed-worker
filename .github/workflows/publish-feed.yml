@@ -17,6 +17,10 @@ on:
         description: 'Optional scoped route'
         required: false
         type: string
+      changed_files:
+        description: 'Optional changed config file list from the private repo'
+        required: false
+        type: string
       mode:
         description: 'Publish mode'
         required: false
@@ -85,24 +89,66 @@ jobs:
           --config-root=data-repo/config
           --output=${{ env.REFEED_RUNTIME_CONFIG_PATH }}
 
+      - name: Resolve affected routes from changed config files
+        id: resolve-routes
+        if: ${{ github.event.inputs.changed_files != '' }}
+        env:
+          REFEED_CHANGED_FILES: ${{ github.event.inputs.changed_files || '' }}
+        run: |
+          node .github/scripts/resolve-config-routes.mjs \
+            --config-root=data-repo/config \
+            --changed-files "$REFEED_CHANGED_FILES" > build/route-scope.json
+          node --input-type=module - <<'EOF'
+          import { readFileSync, appendFileSync } from 'node:fs';
+
+          const scope = JSON.parse(readFileSync('build/route-scope.json', 'utf8'));
+          const lines = [];
+          lines.push(`route-scope=${scope.mode}`);
+          lines.push('routes<<__ROUTES__');
+          lines.push((scope.routes ?? []).join(','));
+          lines.push('__ROUTES__');
+          appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`, 'utf8');
+          EOF
+
       - name: Generate static feeds into feed root
+        if: ${{ github.event.inputs.changed_files == '' || steps.resolve-routes.outputs.route-scope != 'none' }}
+        id: publish-feeds
         env:
           REFEED_ROUTE: ${{ github.event.inputs.route || '' }}
+          REFEED_SCOPED_ROUTES: ${{ steps.resolve-routes.outputs.routes || '' }}
           REFEED_MODE: ${{ github.event.inputs.mode || 'incremental' }}
           REFEED_REPORT_PATH: build/feed-report.json
           REFEED_FETCH_CONCURRENCY: ${{ github.event.inputs.fetch_concurrency || '5' }}
           REFEED_FETCH_PER_HOST_CONCURRENCY: ${{ github.event.inputs.per_host_concurrency || '2' }}
-        run: >
-          node .github/scripts/publish-feeds.mjs
-          --config=build/config.runtime.json
-          --state-dir=data-repo/state
-          --output-dir=dist-feed
-          --existing-dir=data-repo/feeds
-          --route=${{ github.event.inputs.route || '' }}
-          --mode=${{ github.event.inputs.mode || 'incremental' }}
-          --fetch-concurrency=${{ github.event.inputs.fetch_concurrency || '5' }}
-          --per-host-concurrency=${{ github.event.inputs.per_host_concurrency || '2' }}
-          --report-path=${{ env.REFEED_REPORT_PATH }}
+        run: |
+          args=(
+            --config=build/config.runtime.json
+            --state-dir=data-repo/state
+            --output-dir=dist-feed
+            --existing-dir=data-repo/feeds
+            --mode=${{ github.event.inputs.mode || 'incremental' }}
+            --fetch-concurrency=${{ github.event.inputs.fetch_concurrency || '5' }}
+            --per-host-concurrency=${{ github.event.inputs.per_host_concurrency || '2' }}
+            --report-path=${{ env.REFEED_REPORT_PATH }}
+          )
+          if [ -n "$REFEED_ROUTE" ]; then
+            args+=("--route=$REFEED_ROUTE")
+          fi
+          if [ -n "$REFEED_SCOPED_ROUTES" ]; then
+            args+=("--routes=$REFEED_SCOPED_ROUTES")
+          fi
+          node .github/scripts/publish-feeds.mjs "${args[@]}"
+
+      - name: Skip publish when config changes do not affect routes
+        if: ${{ github.event.inputs.changed_files != '' && steps.resolve-routes.outputs.route-scope == 'none' }}
+        run: |
+          echo 'No route-impacting config changes detected; skipping publish.'
+          {
+            echo '# Publish summary'
+            echo ''
+            echo '- Route scope: none'
+            echo '- Action: skipped'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Write run summary
         if: always()
@@ -122,6 +168,7 @@ jobs:
           EOF
 
       - name: Build README dashboard
+        if: ${{ github.event.inputs.changed_files == '' || steps.resolve-routes.outputs.route-scope != 'none' }}
         env:
           REFEED_CONFIG_PATH: build/config.runtime.json
           REFEED_STATE_DIR: data-repo/state
@@ -142,5 +189,6 @@ jobs:
           --output data-repo/README.md
 
       - name: Sync state and feeds back to data repository
+        if: ${{ github.event.inputs.changed_files == '' || steps.resolve-routes.outputs.route-scope != 'none' }}
         run: |
           bash .github/scripts/sync-data-repo.sh data-repo/state dist-feed data-repo "chore: refresh feed data" data-repo/README.md

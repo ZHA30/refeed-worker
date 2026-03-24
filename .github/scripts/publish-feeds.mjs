@@ -829,9 +829,10 @@ export async function publishFeeds({
   existingDir,
   reportPath,
   publicBaseUrl,
-  retries,
-  timeoutMs,
+  retries = 3,
+  timeoutMs = 20000,
   route = '',
+  routes = [],
   mode = 'incremental',
   fetchConcurrency = 1,
   perHostConcurrency = 1,
@@ -845,27 +846,46 @@ export async function publishFeeds({
   const analysis = await analyzeConfig(configPath);
   const rules = analysis.rules;
   const scopedRoute = route ? normalizeRoute(route) : '';
+  const scopedRoutes = [...new Set(routes.map((value) => normalizeRoute(value)).filter(Boolean))];
+  if (scopedRoute && scopedRoutes.length > 0) {
+    throw new Error('cannot combine --route with --routes');
+  }
   if (mode === 'full-refresh' && !scopedRoute) {
     throw new Error('mode=full-refresh requires --route');
   }
 
   const scopedRules = scopedRoute
     ? rules.filter((rule) => normalizeRoute(rule.route) === scopedRoute)
-    : rules;
+    : scopedRoutes.length > 0
+      ? rules.filter((rule) => scopedRoutes.includes(normalizeRoute(rule.route)))
+      : rules;
   if (scopedRoute && scopedRules.length === 0) {
     throw new Error(`unknown scoped route: ${scopedRoute}`);
   }
+  if (scopedRoutes.length > 0 && scopedRules.length !== scopedRoutes.length) {
+    const knownRoutes = new Set(rules.map((rule) => normalizeRoute(rule.route)));
+    const unknownRoutes = scopedRoutes.filter((value) => !knownRoutes.has(value));
+    throw new Error(`unknown scoped routes: ${unknownRoutes.join(', ')}`);
+  }
   if (scopedRoute && scopedRules.some((rule) => !rule.enabled)) {
     throw new Error(`scoped route is disabled: ${scopedRoute}`);
+  }
+  if (scopedRoutes.length > 0) {
+    const disabledScopedRoutes = scopedRules
+      .filter((rule) => !rule.enabled)
+      .map((rule) => normalizeRoute(rule.route));
+    if (disabledScopedRoutes.length > 0) {
+      throw new Error(`scoped routes include disabled entries: ${disabledScopedRoutes.join(', ')}`);
+    }
   }
 
   const activeRoutes = new Set(
     rules.filter((rule) => rule.enabled).map((rule) => normalizeRoute(rule.route))
   );
-  const rulesToProcess = scopedRoute
+  const rulesToProcess = (scopedRoute || scopedRoutes.length > 0)
     ? scopedRules.filter((rule) => rule.enabled)
     : rules.filter((rule) => rule.enabled);
-  const disabledRules = scopedRoute
+  const disabledRules = (scopedRoute || scopedRoutes.length > 0)
     ? scopedRules.filter((rule) => !rule.enabled)
     : rules.filter((rule) => !rule.enabled);
 
@@ -875,7 +895,7 @@ export async function publishFeeds({
     hasFatalConfigErrors: analysis.hasFatalErrors,
     configDiagnostics: analysis.diagnostics,
     mode,
-    scopedRoutes: scopedRoute ? [scopedRoute] : [],
+    scopedRoutes: scopedRoute ? [scopedRoute] : scopedRoutes,
     totals: {
       rules: rules.length,
       enabled: activeRoutes.size,
@@ -920,7 +940,7 @@ export async function publishFeeds({
     outputDir,
     existingDir,
     activeRoutes,
-    scopedRoute ? [scopedRoute] : []
+    scopedRoute ? [scopedRoute] : scopedRoutes
   );
 
   const fetchQueue = [];
@@ -1007,6 +1027,10 @@ async function main() {
   const outputDir = getOption('--output-dir', process.env.REFEED_OUTPUT_DIR ?? 'dist-feed');
   const existingDir = getOption('--existing-dir', process.env.REFEED_EXISTING_DIR ?? '');
   const route = getOption('--route', process.env.REFEED_ROUTE ?? '');
+  const routes = getOption('--routes', process.env.REFEED_ROUTES ?? '')
+    .split(/\r?\n|,/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
   const mode = getOption('--mode', process.env.REFEED_MODE ?? 'incremental');
   const reportPath = getOption(
     '--report-path',
@@ -1045,6 +1069,7 @@ async function main() {
     perHostConcurrency,
     timeoutMs,
     route,
+    routes,
     mode,
   });
 

@@ -1169,3 +1169,56 @@ test("publish-feeds CLI exits non-zero on fatal config diagnostics", async () =>
     }
   );
 });
+
+test('publishFeeds supports multiple scoped routes', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'refeed-publish-routes-'));
+  const outputDir = path.join(tempDir, 'dist');
+  const stateDir = path.join(tempDir, 'state');
+  await writeConfig(tempDir, {
+    demo: {
+      routes: {
+        'alpha/main': {
+          feed: {
+            source: 'https://example.com/a.xml',
+          },
+        },
+        'beta/main': {
+          feed: {
+            source: 'https://example.com/b.xml',
+          },
+        },
+        'gamma/main': {
+          feed: {
+            source: 'https://example.com/c.xml',
+          },
+        },
+      },
+    },
+  });
+
+  const fetchImpl = async (url) => {
+    if (url === 'https://example.com/a.xml') {
+      return new Response(RSS_SAMPLE, { status: 200 });
+    }
+    if (url === 'https://example.com/c.xml') {
+      return new Response(RSS_CHANNEL_ONLY, { status: 200 });
+    }
+    throw new Error(`unexpected url: ${url}`);
+  };
+
+  const report = await publishFeeds({
+    configPath: path.join(tempDir, 'config.json'),
+    stateDir,
+    outputDir,
+    routes: ['alpha/main', 'gamma/main'],
+    fetchImpl,
+  });
+
+  assert.deepEqual(report.scopedRoutes, ['alpha/main', 'gamma/main']);
+  assert.equal(report.totals.processed, 2);
+  assert.equal(report.totals.enabled, 3);
+  assert.equal(report.totals.succeeded, 2);
+  await assert.rejects(() => readFile(path.join(outputDir, 'beta', 'main.xml'), 'utf8'), /ENOENT/u);
+  assert.match(await readFile(path.join(outputDir, 'alpha', 'main.xml'), 'utf8'), /Source Feed/u);
+  assert.match(await readFile(path.join(outputDir, 'gamma', 'main.xml'), 'utf8'), /Channel Refresh/u);
+});

@@ -15,6 +15,7 @@ test('publish workflow exposes route, mode, and concurrency dispatch inputs', as
 
   assert.match(workflow, /workflow_dispatch:\s+inputs:/u);
   assert.match(workflow, /route:\s*\n\s+description: 'Optional scoped route'/u);
+  assert.match(workflow, /changed_files:\s*\n\s+description: 'Optional changed config file list from the private repo'/u);
   assert.match(workflow, /mode:\s*\n\s+description: 'Publish mode'/u);
   assert.match(workflow, /fetch_concurrency:\s*\n\s+description: 'Global fetch concurrency'/u);
   assert.match(workflow, /per_host_concurrency:\s*\n\s+description: 'Per-host fetch concurrency'/u);
@@ -27,14 +28,19 @@ test('publish workflow compiles runtime config before publishing feeds', async (
   const workflow = await readWorkflow();
 
   const buildConfigIndex = workflow.indexOf('- name: Build runtime config');
+  const resolveIndex = workflow.indexOf('- name: Resolve affected routes from changed config files');
   const publishIndex = workflow.indexOf('- name: Generate static feeds into feed root');
 
   assert.ok(buildConfigIndex >= 0);
+  assert.ok(resolveIndex > buildConfigIndex);
   assert.ok(publishIndex > buildConfigIndex);
   assert.match(workflow, /node \.github\/scripts\/build-runtime-config\.mjs/u);
+  assert.match(workflow, /node \.github\/scripts\/resolve-config-routes\.mjs/u);
   assert.match(workflow, /--config-root=data-repo\/config/u);
+  assert.match(workflow, /--changed-files "\$REFEED_CHANGED_FILES"/u);
   assert.match(workflow, /--output=\$\{\{ env\.REFEED_RUNTIME_CONFIG_PATH \}\}/u);
   assert.match(workflow, /--config=build\/config\.runtime\.json/u);
+  assert.match(workflow, /--routes=\$REFEED_SCOPED_ROUTES/u);
 });
 
 test('publish workflow passes concurrency env values to publish-feeds', async () => {
@@ -63,6 +69,16 @@ test('publish workflow checks out the data repository and writes state plus feed
   assert.match(workflow, /--output data-repo\/README\.md/u);
   assert.match(workflow, /- name: Sync state and feeds back to data repository/u);
   assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo "chore: refresh feed data" data-repo\/README\.md/u);
+});
+
+test('publish workflow resolves changed config files into scoped routes before publishing', async () => {
+  const workflow = await readWorkflow();
+
+  assert.match(workflow, /- name: Resolve affected routes from changed config files/u);
+  assert.match(workflow, /REFEED_CHANGED_FILES: \$\{\{ github\.event\.inputs\.changed_files \|\| '' \}\}/u);
+  assert.match(workflow, /route-scope=/u);
+  assert.match(workflow, /REFEED_SCOPED_ROUTES/u);
+  assert.match(workflow, /if \[ -n "\$REFEED_SCOPED_ROUTES" \]; then/u);
 });
 
 test('publish workflow no longer references retry issues or README refresh steps', async () => {
