@@ -494,13 +494,8 @@ function renderLinksCell({ route, ruleTarget, sourceUrl, feedTarget }) {
   ].join("");
 }
 
-function renderPublicLinksCell({ feedTarget, enabled }) {
-  return [
-    '<ul>',
-    `<li>状态：${enabled ? '✅ 已启用' : '⏸️ 已关闭'}</li>`,
-    `<li>订阅链接：${renderExternalFeedLink(feedTarget)}</li>`,
-    '</ul>',
-  ].join('');
+function renderPublicFeedCell(feedTarget) {
+  return renderExternalFeedLink(feedTarget);
 }
 
 function countRouteStateItems(state) {
@@ -760,11 +755,11 @@ function renderPublicGroupCatalog({ groupName, groupRules, baseUrl, feedTitles, 
   for (const rule of groupRules) {
     const feedTarget = buildFeedTarget(rule.route, baseUrl, '');
     const titleCell = escapeHtml(feedTitles[rule.route] || '待获取');
-    const linksCell = renderPublicLinksCell({
-      feedTarget,
-      enabled: Boolean(routeStatusByRoute[rule.route]?.enabled),
-    });
-    lines.push(`        <tr><td>${titleCell}</td><td>${Boolean(routeStatusByRoute[rule.route]?.enabled) ? '✅ 已启用' : '⏸️ 已关闭'}</td><td>${linksCell}</td></tr>`);
+    const enabled = Boolean(routeStatusByRoute[rule.route]?.enabled);
+    const statusClass = enabled ? 'status' : 'status off';
+    const statusLabel = enabled ? '✅ 已启用' : '⏸️ 已关闭';
+    const feedCell = renderPublicFeedCell(feedTarget);
+    lines.push(`          <tr><td>${titleCell}</td><td><span class="${statusClass}">${statusLabel}</span></td><td class="feed-link">${feedCell}</td></tr>`);
   }
 
   lines.push('      </tbody>');

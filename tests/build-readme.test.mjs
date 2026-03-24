@@ -417,6 +417,8 @@ test("buildReadme shows retained state and output counts in subscription status 
   assert.match(groupReadme, /\| Demo Feed \| <ul><li>状态：✅ 已启用<\/li><li>储存：3 条<\/li><li>输出：2 条<\/li><\/ul> \|/u);
   assert.match(groupReadme, /\| 待获取 \| <ul><li>状态：⏸️ 已关闭<\/li><li>储存：2 条<\/li><li>输出：0 条<\/li><\/ul> \|/u);
   assert.match(publicCatalog, /<h1>demo<\/h1>/u);
+  assert.match(publicCatalog, /<th>订阅<\/th>/u);
+  assert.doesNotMatch(publicCatalog, /<li>状态：✅ 已启用<\/li>/u);
 });
 
 test("buildReadme writes group readmes and public catalogs for non-ascii group names", async () => {
