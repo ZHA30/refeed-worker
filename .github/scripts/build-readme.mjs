@@ -46,7 +46,7 @@ function buildGroupCatalogUrl(groupName, baseUrl) {
   if (!baseUrl || !groupName) {
     return "";
   }
-  return `${baseUrl.replace(/\/+$/u, "")}/feeds/groups/${slugifyGroupName(groupName)}.html`;
+  return `${baseUrl.replace(/\/+$/u, "")}/${slugifyGroupName(groupName)}.html`;
 }
 
 function buildGroupConfigReadmePath(groupName) {
@@ -681,7 +681,7 @@ export function renderReadme({
 
     lines.push(`### ${escapeHtml(groupName)}`);
     lines.push("");
-    lines.push("| 订阅数 | 已启用 | 储存总数 | 输出总数 | 入口 |");
+    lines.push("| 全部订阅 | 已启用 | 储存总数 | 输出总数 | 入口 |");
     lines.push("| --- | --- | --- | --- | --- |");
     lines.push(
       `| ${groupRules.length} | ${enabledRules} | ${totalStateItemsForGroup} | ${totalOutputItemsForGroup} | ${[

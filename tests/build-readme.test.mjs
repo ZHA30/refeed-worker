@@ -192,7 +192,7 @@ test("renderReadme preserves provided rule order and keeps issue details out of 
   assert.match(content, /\| 1 \| 1 \| 8 \| 5 \|/u);
   assert.match(content, /\| 1 \| 0 \| 3 \| 0 \|/u);
   assert.match(content, /\[内部清单\]\(https:\/\/github\.com\/owner\/repo\/blob\/main\/config\/alpha\/README\.md\)/u);
-  assert.match(content, /\[公开清单\]\(https:\/\/feeds\.example\.com\/feeds\/groups\/be76331b95df\.html\)/u);
+  assert.match(content, /\[公开清单\]\(https:\/\/feeds\.example\.com\/be76331b95df\.html\)/u);
 });
 
 test("buildReadme prefers feed xml titles and surfaces fatal config diagnostics", async () => {
@@ -446,7 +446,7 @@ test("buildReadme writes group readmes and public catalogs for non-ascii group n
   const groupReadme = await readFile(path.join(tempDir, "config", "女神的古拉20", "README.md"), "utf8");
   const publicCatalog = await readFile(path.join(tempDir, "dist-feed", "groups", "10d638ba7171.html"), "utf8");
   assert.match(groupReadme, /## 女神的古拉20/u);
-  assert.match(groupReadme, /\[公开清单\]\(https:\/\/feeds\.example\.com\/feeds\/groups\/10d638ba7171\.html\)/u);
+  assert.match(groupReadme, /\[公开清单\]\(https:\/\/feeds\.example\.com\/10d638ba7171\.html\)/u);
   assert.match(publicCatalog, /<h1>女神的古拉20<\/h1>/u);
 });
 
