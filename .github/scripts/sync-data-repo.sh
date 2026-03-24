@@ -52,7 +52,12 @@ fi
 
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-git add state feeds README.md build/feed-report.json
+git add state feeds README.md
+
+if [[ -f "build/feed-report.json" ]]; then
+  git add -f build/feed-report.json
+fi
+
 git commit -m "${commit_message}"
 
 if git push origin HEAD; then

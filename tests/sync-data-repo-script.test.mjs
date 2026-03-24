@@ -21,6 +21,7 @@ test('sync-data-repo script copies state and feeds back into the checked out dat
   assert.match(script, /target_report_file="\$\{target_build_dir\}\/feed-report\.json"/u);
   assert.match(script, /rm -rf "\$\{target_state_dir\}"/u);
   assert.match(script, /rm -rf "\$\{target_feed_dir\}"/u);
-  assert.match(script, /git add state feeds README\.md build\/feed-report\.json/u);
+  assert.match(script, /git add state feeds README\.md/u);
+  assert.match(script, /git add -f build\/feed-report\.json/u);
   assert.match(script, /git push origin HEAD/u);
 });
