@@ -45,14 +45,14 @@ fi
 
 cd "${target_checkout_dir}"
 
-if git diff --quiet -- state feeds README.md build/feed-report.json; then
+if git diff --quiet -- state feeds config README.md build/feed-report.json; then
   echo "no data changes detected"
   exit 0
 fi
 
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-git add state feeds README.md
+git add state feeds config README.md
 
 if [[ -f "build/feed-report.json" ]]; then
   git add -f build/feed-report.json
