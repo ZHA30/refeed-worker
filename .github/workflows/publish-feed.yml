@@ -173,6 +173,7 @@ jobs:
           REFEED_CONFIG_PATH: build/config.runtime.json
           REFEED_STATE_DIR: data-repo/state
           REFEED_FEED_DIR: dist-feed
+          REFEED_CONFIG_ROOT: data-repo/config
           REFEED_REPORT_PATH: build/feed-report.json
           REFEED_REPOSITORY: ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}
           REFEED_WORKFLOW_REPOSITORY: ${{ github.repository }}
@@ -182,6 +183,7 @@ jobs:
           --config build/config.runtime.json
           --state-dir data-repo/state
           --feed-dir dist-feed
+          --config-root data-repo/config
           --report-path build/feed-report.json
           --base-url ${{ vars.PUBLIC_FEED_BASE_URL || '' }}
           --repo ${{ github.event.inputs.config_repository || vars.DATA_REPOSITORY || github.repository }}

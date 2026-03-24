@@ -798,6 +798,7 @@ export async function buildReadme({
   repoSlug,
   workflowRepoSlug = repoSlug,
   feedDir,
+  configRoot = process.env.REFEED_CONFIG_ROOT ?? "",
   reportPath = "",
   githubToken = process.env.GITHUB_TOKEN ?? "",
   currentRunId = process.env.GITHUB_RUN_ID ?? "",
@@ -861,11 +862,13 @@ export async function buildReadme({
       : null,
   });
 
-  const configRootDir = analysis.configRoot
-    ? path.resolve(analysis.configRoot)
-    : resolvedConfigPath.endsWith(".json")
-      ? path.join(path.dirname(resolvedConfigPath), routeToConfigPath())
-      : resolvedConfigPath;
+  const configRootDir = configRoot
+    ? path.resolve(configRoot)
+    : analysis.configRoot
+      ? path.resolve(analysis.configRoot)
+      : resolvedConfigPath.endsWith(".json")
+        ? path.join(path.dirname(resolvedConfigPath), routeToConfigPath())
+        : resolvedConfigPath;
   const groupArtifacts = [];
 
   for (const [groupName, groupRules] of groupRulesByGroup(rules)) {
@@ -932,6 +935,7 @@ export function readArgs(argv) {
       process.env.GITHUB_REPOSITORY ??
       "",
     feedDir: process.env.REFEED_FEED_DIR ?? "dist-feed",
+    configRoot: process.env.REFEED_CONFIG_ROOT ?? "",
     reportPath: process.env.REFEED_REPORT_PATH ?? "",
   };
 
@@ -975,6 +979,11 @@ export function readArgs(argv) {
     }
     if (current === "--feed-dir" && next) {
       options.feedDir = next;
+      index += 1;
+      continue;
+    }
+    if (current === "--config-root" && next) {
+      options.configRoot = next;
       index += 1;
       continue;
     }

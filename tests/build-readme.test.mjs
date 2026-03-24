@@ -79,6 +79,8 @@ test("readArgs keeps base-url, repo, and workflow-repo values isolated", () => {
     "data-repo/state",
     "--feed-dir",
     "dist-feed",
+    "--config-root",
+    "data-repo/config",
     "--report-path",
     "build/feed-report.json",
     "--base-url",
@@ -95,6 +97,7 @@ test("readArgs keeps base-url, repo, and workflow-repo values isolated", () => {
   assert.equal(options.repoSlug, "ZHA30/refeed");
   assert.equal(options.workflowRepoSlug, "ZHA30/refeed-worker");
   assert.equal(options.outputFile, "data-repo/README.md");
+  assert.equal(options.configRoot, "data-repo/config");
 });
 
 test("loadRules preserves config insertion order", async () => {
