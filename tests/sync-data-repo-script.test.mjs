@@ -13,11 +13,14 @@ test('sync-data-repo script copies state and feeds back into the checked out dat
   assert.match(script, /source_feed_dir="\$\{2:-dist-feed\}"/u);
   assert.match(script, /target_checkout_dir="\$\{3:-data-repo\}"/u);
   assert.match(script, /source_readme_file="\$\{5:-\}"/u);
+  assert.match(script, /source_report_file="\$\{6:-\}"/u);
   assert.match(script, /target_state_dir="\$\{target_checkout_dir\}\/state"/u);
   assert.match(script, /target_feed_dir="\$\{target_checkout_dir\}\/feeds"/u);
   assert.match(script, /target_readme_file="\$\{target_checkout_dir\}\/README\.md"/u);
+  assert.match(script, /target_build_dir="\$\{target_checkout_dir\}\/build"/u);
+  assert.match(script, /target_report_file="\$\{target_build_dir\}\/feed-report\.json"/u);
   assert.match(script, /rm -rf "\$\{target_state_dir\}"/u);
   assert.match(script, /rm -rf "\$\{target_feed_dir\}"/u);
-  assert.match(script, /git add state feeds README\.md/u);
+  assert.match(script, /git add state feeds README\.md build\/feed-report\.json/u);
   assert.match(script, /git push origin HEAD/u);
 });

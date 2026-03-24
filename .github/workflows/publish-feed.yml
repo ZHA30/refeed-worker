@@ -191,4 +191,4 @@ jobs:
       - name: Sync state and feeds back to data repository
         if: ${{ github.event.inputs.changed_files == '' || steps.resolve-routes.outputs.route-scope != 'none' }}
         run: |
-          bash .github/scripts/sync-data-repo.sh data-repo/state dist-feed data-repo "chore: refresh feed data" data-repo/README.md
+          bash .github/scripts/sync-data-repo.sh data-repo/state dist-feed data-repo "chore: refresh feed data" data-repo/README.md build/feed-report.json
