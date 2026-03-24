@@ -585,12 +585,10 @@ function renderDashboardGrid(rows) {
 
 export function renderReadme({
   rules,
-  diagnostics = [],
   baseUrl,
   repoSlug = "",
   workflowRepoSlug = repoSlug,
   recentRuns = [],
-  recentFailureIssues = [],
   feedTitles = {},
   routeStatusByRoute = {},
   stateCount = 0,
@@ -602,7 +600,6 @@ export function renderReadme({
   const enabledCount = rules.filter((rule) => rule.enabled).length;
   const actionLinks = renderActionLinks(repoSlug, workflowRepoSlug);
   const workflowTarget = buildWorkflowTarget(workflowRepoSlug);
-  const failureIssueTarget = buildFailureIssueTarget(workflowRepoSlug);
   const overviewCard = renderDashboardCard({
     title: "📊 运行概览",
     body: renderCardMetricList([
@@ -627,27 +624,6 @@ export function renderReadme({
       "当前没有最近的发布记录"
     ),
   });
-  const issueCard = renderDashboardCard({
-    title: "🚨 错误议题",
-    url: failureIssueTarget,
-    body: renderCardList(
-      recentFailureIssues.map(
-        (entry) =>
-          `${renderCodeLink(entry.route, entry.url)} · ${escapeHtml(formatDateTime(entry.updatedAt))}`
-      ),
-      "当前没有待处理的错误议题"
-    ),
-  });
-  const diagnosticsCard = renderDashboardCard({
-    title: "⚠️ 配置诊断",
-    body: renderCardList(
-      diagnostics.map((entry) => {
-        const lineText = entry.line ? `L${entry.line}` : "L?";
-        return `<code>${escapeHtml(`${lineText} ${entry.path}`)}</code> · ${escapeHtml(entry.message)}`;
-      }),
-      "当前没有配置诊断。"
-    ),
-  });
   const lines = [
     "<!-- AUTO-GENERATED: DO NOT EDIT -->",
     "",
@@ -659,7 +635,6 @@ export function renderReadme({
     "",
     ...renderDashboardGrid([
       [overviewCard, publishCard],
-      [issueCard, diagnosticsCard],
     ]),
     "",
     "## 📚 订阅清单",

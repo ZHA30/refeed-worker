@@ -124,7 +124,7 @@ test("loadRules preserves config insertion order", async () => {
   );
 });
 
-test("renderReadme emits diagnostics and preserves provided rule order", () => {
+test("renderReadme preserves provided rule order and keeps issue details out of the dashboard", () => {
   const content = renderReadme({
     rules: [
       {
@@ -199,11 +199,8 @@ test("renderReadme emits diagnostics and preserves provided rule order", () => {
   assert.match(content, /## 📊 总览看板/u);
   assert.match(content, /<strong>📊 运行概览<\/strong>/u);
   assert.match(content, /<a href="https:\/\/github\.com\/owner\/repo\/actions\/workflows\/publish-feed\.yml"><strong>🚀 发布记录<\/strong><\/a>/u);
-  assert.match(content, /<strong>⚠️ 配置诊断<\/strong>/u);
-  assert.match(
-    content,
-    /<code>L12 feeds\.routes\[&quot;b\/main&quot;\]\.debug<\/code> · ignored unknown route field &quot;debug&quot;/u
-  );
+  assert.doesNotMatch(content, /<strong>⚠️ 配置诊断<\/strong>/u);
+  assert.doesNotMatch(content, /ignored unknown route field/u);
   assert.doesNotMatch(content, /## 🆕 最近纳入/u);
   assert.doesNotMatch(content, /## ⏸️ 最近停用/u);
   assert.match(content, /<li>🕒 最新生成：<code>2026\/03\/20 16:30<\/code><\/li>/u);
@@ -230,7 +227,7 @@ test("renderReadme emits diagnostics and preserves provided rule order", () => {
     /\[🔄 全量刷新\]\(https:\/\/github\.com\/owner\/repo\/actions\/workflows\/publish-feed\.yml\)/u
   );
   assert.match(content, /<a href="https:\/\/github\.com\/owner\/repo\/actions\/runs\/42">#42<\/a> · <code>workflow_dispatch<\/code> · ✅ success · 2026\/03\/20 16:40/u);
-  assert.match(content, /<a href="https:\/\/github\.com\/owner\/repo\/issues\/7"><code>b\/main<\/code><\/a> · 2026\/03\/20 16:35/u);
+  assert.doesNotMatch(content, /<a href="https:\/\/github\.com\/owner\/repo\/issues\/7"><code>b\/main<\/code><\/a> · 2026\/03\/20 16:35/u);
   assert.doesNotMatch(content, /## 📈 数据图表/u);
   assert.doesNotMatch(content, /run-history\.svg/u);
   assert.doesNotMatch(content, /state-volume\.svg/u);
@@ -288,8 +285,8 @@ test("buildReadme prefers feed xml titles and surfaces fatal config diagnostics"
 
   const readme = await readFile(path.join(tempDir, "README.md"), "utf8");
   assert.equal(result.hasFatalErrors, true);
-  assert.match(readme, /<strong>⚠️ 配置诊断<\/strong>/u);
-  assert.match(readme, /legacy `schema` key is not supported/u);
+  assert.doesNotMatch(readme, /<strong>⚠️ 配置诊断<\/strong>/u);
+  assert.doesNotMatch(readme, /legacy `schema` key is not supported/u);
   assert.match(readme, /<li>📚 全部数量：<code>0<\/code><\/li>/u);
   assert.match(readme, /<li>🆕 新增数量：<code>未知<\/code><\/li>/u);
   assert.match(readme, /<li>🗑️ 删除数量：<code>未知<\/code><\/li>/u);
@@ -444,7 +441,7 @@ test("buildReadme renders real workflow runs and open failure issues from GitHub
 
   const readme = await readFile(path.join(tempDir, "README.md"), "utf8");
   assert.match(readme, /<a href="https:\/\/github\.com\/owner\/repo\/actions\/runs\/42">#42<\/a> · <code>workflow_dispatch<\/code> · ✅ success · 2026\/03\/20 16:40/u);
-  assert.match(readme, /<a href="https:\/\/github\.com\/owner\/repo\/issues\/9"><code>demo\/main<\/code><\/a> · 2026\/03\/20 16:35/u);
+  assert.doesNotMatch(readme, /<a href="https:\/\/github\.com\/owner\/repo\/issues\/9"><code>demo\/main<\/code><\/a> · 2026\/03\/20 16:35/u);
   assert.match(readme, /<li>状态：✅ 已启用<\/li><li>储存：0 条<\/li><li>输出：0 条<\/li>/u);
   assert.doesNotMatch(readme, /run-history\.svg/u);
 });
@@ -628,6 +625,5 @@ test("buildReadme filters failure issues for routes already fixed in the current
   });
 
   const readme = await readFile(path.join(tempDir, "README.md"), "utf8");
-  assert.match(readme, /当前没有待处理的错误议题/u);
   assert.doesNotMatch(readme, /demo\/main<\/code><\/a> · 2026\/03\/20 16:35/u);
 });
