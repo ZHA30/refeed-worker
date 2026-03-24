@@ -102,10 +102,10 @@ test('publish workflow keeps branch publish and minimal summary', async () => {
   assert.match(workflow, /sync-data-repo\.sh data-repo\/state dist-feed data-repo "chore: refresh feed data" data-repo\/README\.md/u);
 });
 
-test('publish workflow keeps scheduled runs hourly and does not cancel active runs', async () => {
+test('publish workflow keeps scheduled runs every 30 minutes and does not cancel active runs', async () => {
   const workflow = await readWorkflow();
 
-  assert.match(workflow, /cron: '7 \* \* \* \*'/u);
+  assert.match(workflow, /cron: '\*\/30 \* \* \* \*'/u);
   assert.match(workflow, /concurrency:\s*\n\s+group: publish-feed/u);
   assert.match(workflow, /cancel-in-progress: false/u);
 });

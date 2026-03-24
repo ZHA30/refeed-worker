@@ -44,7 +44,7 @@ on:
         required: false
         type: string
   schedule:
-    - cron: '7 * * * *'
+    - cron: '*/30 * * * *'
 
 permissions:
   contents: write
