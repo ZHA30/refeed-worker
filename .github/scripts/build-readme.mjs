@@ -869,7 +869,7 @@ export async function buildReadme({
   for (const [groupName, groupRules] of groupRulesByGroup(rules)) {
     const groupReadmePath = path.join(configRootDir, groupName, "README.md");
     const groupCatalogPath = feedDir
-      ? path.join(path.resolve(feedDir), "groups", `${slugifyGroupName(groupName)}.html`)
+      ? path.join(path.resolve(feedDir), "groups", `${groupName}.html`)
       : "";
     const groupReadme = renderGroupReadme({
       groupName,
