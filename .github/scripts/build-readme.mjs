@@ -701,10 +701,17 @@ export function renderReadme({
 }
 
 function renderGroupReadme({ groupName, groupRules, baseUrl, repoSlug, feedTitles, routeStatusByRoute }) {
+  const dashboardTarget = buildRepoUrl(repoSlug, '/blob/main/README.md');
+  const publicCatalogTarget = buildGroupCatalogUrl(groupName, baseUrl);
   const lines = [
     '<!-- AUTO-GENERATED: DO NOT EDIT -->',
     '',
     `## ${escapeHtml(groupName)}`,
+    '',
+    [
+      renderMarkdownLink('返回主看板', dashboardTarget),
+      renderMarkdownLink('公开清单', publicCatalogTarget),
+    ].join(' · '),
     '',
     '| 标题 | 状态 | 链接 |',
     '| --- | --- | --- |',

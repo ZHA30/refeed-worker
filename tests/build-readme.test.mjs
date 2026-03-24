@@ -446,6 +446,7 @@ test("buildReadme writes group readmes and public catalogs for non-ascii group n
   const groupReadme = await readFile(path.join(tempDir, "config", "女神的古拉20", "README.md"), "utf8");
   const publicCatalog = await readFile(path.join(tempDir, "dist-feed", "groups", "10d638ba7171.html"), "utf8");
   assert.match(groupReadme, /## 女神的古拉20/u);
+  assert.match(groupReadme, /\[公开清单\]\(https:\/\/feeds\.example\.com\/feeds\/groups\/10d638ba7171\.html\)/u);
   assert.match(publicCatalog, /<h1>女神的古拉20<\/h1>/u);
 });
 
