@@ -37,6 +37,21 @@ export function buildFeedUrl(route, baseUrl) {
   return `${baseUrl.replace(/\/+$/u, "")}/${routeToOutputFile(route)}`;
 }
 
+function slugifyGroupName(value) {
+  return encodeURIComponent(value.trim());
+}
+
+function buildGroupCatalogUrl(groupName, baseUrl) {
+  if (!baseUrl || !groupName) {
+    return "";
+  }
+  return `${baseUrl.replace(/\/+$/u, "")}/groups/${slugifyGroupName(groupName)}.html`;
+}
+
+function buildGroupConfigReadmePath(groupName) {
+  return path.join(routeToConfigPath(), groupName, 'README.md');
+}
+
 function escapeTableCell(value) {
   return String(value).replace(/\|/gu, "\\|").replace(/\r?\n/gu, "<br>");
 }
@@ -479,6 +494,15 @@ function renderLinksCell({ route, ruleTarget, sourceUrl, feedTarget }) {
   ].join("");
 }
 
+function renderPublicLinksCell({ feedTarget, enabled }) {
+  return [
+    '<ul>',
+    `<li>状态：${enabled ? '✅ 已启用' : '⏸️ 已关闭'}</li>`,
+    `<li>订阅链接：${renderExternalFeedLink(feedTarget)}</li>`,
+    '</ul>',
+  ].join('');
+}
+
 function countRouteStateItems(state) {
   if (!state || typeof state !== "object" || Array.isArray(state)) {
     return 0;
@@ -637,7 +661,7 @@ export function renderReadme({
       [overviewCard, publishCard],
     ]),
     "",
-    "## 📚 订阅清单",
+    "## 🗂️ 分组总览",
     "",
   ];
 
@@ -647,26 +671,28 @@ export function renderReadme({
   }
 
   for (const [groupName, groupRules] of groupRulesByGroup(rules)) {
+    const enabledRules = groupRules.filter((rule) => rule.enabled).length;
+    const totalStateItemsForGroup = groupRules.reduce(
+      (sum, rule) => sum + (routeStatusByRoute[rule.route]?.stateItems ?? 0),
+      0
+    );
+    const totalOutputItemsForGroup = groupRules.reduce(
+      (sum, rule) => sum + (routeStatusByRoute[rule.route]?.outputItems ?? 0),
+      0
+    );
+    const groupConfigTarget = buildRepoUrl(repoSlug, `/blob/main/${buildGroupConfigReadmePath(groupName).split(path.sep).join('/')}`);
+    const groupPublicTarget = buildGroupCatalogUrl(groupName, baseUrl);
+
     lines.push(`### ${escapeHtml(groupName)}`);
     lines.push("");
-    lines.push("| 标题 | 状态 | 链接 |");
-    lines.push("| --- | --- | --- |");
-
-    for (const rule of groupRules) {
-      const feedTarget = buildFeedTarget(rule.route, baseUrl, repoSlug);
-      const ruleTarget = buildRuleTarget(repoSlug);
-      const sourceUrl = rule.source.trim();
-      const titleCell = escapeTableCell(feedTitles[rule.route] || "待获取");
-      const statusCell = renderStatusCell(routeStatusByRoute[rule.route]);
-      const linksCell = renderLinksCell({
-        route: rule.route,
-        ruleTarget,
-        sourceUrl,
-        feedTarget,
-      });
-
-      lines.push(`| ${titleCell} | ${statusCell} | ${linksCell} |`);
-    }
+    lines.push("| 订阅数 | 已启用 | 储存总数 | 输出总数 | 入口 |");
+    lines.push("| --- | --- | --- | --- | --- |");
+    lines.push(
+      `| ${groupRules.length} | ${enabledRules} | ${totalStateItemsForGroup} | ${totalOutputItemsForGroup} | ${[
+        renderMarkdownLink('内部清单', groupConfigTarget),
+        renderMarkdownLink('公开清单', groupPublicTarget),
+      ].join(' · ')} |`
+    );
 
     lines.push("");
   }
@@ -676,6 +702,77 @@ export function renderReadme({
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+function renderGroupReadme({ groupName, groupRules, baseUrl, repoSlug, feedTitles, routeStatusByRoute }) {
+  const lines = [
+    '<!-- AUTO-GENERATED: DO NOT EDIT -->',
+    '',
+    `## ${escapeHtml(groupName)}`,
+    '',
+    '| 标题 | 状态 | 链接 |',
+    '| --- | --- | --- |',
+  ];
+
+  for (const rule of groupRules) {
+    const feedTarget = buildFeedTarget(rule.route, baseUrl, repoSlug);
+    const ruleTarget = buildRuleTarget(repoSlug);
+    const sourceUrl = rule.source.trim();
+    const titleCell = escapeTableCell(feedTitles[rule.route] || '待获取');
+    const statusCell = renderStatusCell(routeStatusByRoute[rule.route]);
+    const linksCell = renderLinksCell({ route: rule.route, ruleTarget, sourceUrl, feedTarget });
+    lines.push(`| ${titleCell} | ${statusCell} | ${linksCell} |`);
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+function renderPublicGroupCatalog({ groupName, groupRules, baseUrl, feedTitles, routeStatusByRoute }) {
+  const lines = [
+    '<!doctype html>',
+    '<html lang="zh-CN">',
+    '<head>',
+    '  <meta charset="utf-8">',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+    `  <title>${escapeHtml(groupName)} · Refeed</title>`,
+    '  <style>',
+    '    body{font-family:Georgia,"Noto Serif SC",serif;margin:0;background:#f6f0e7;color:#1f1a14;padding:24px;}',
+    '    main{max-width:980px;margin:0 auto;background:#fffdf9;border:1px solid #d8c8ad;padding:24px;}',
+    '    h1{margin-top:0;font-size:34px;}',
+    '    p{color:#5e564b;line-height:1.7;}',
+    '    table{width:100%;border-collapse:collapse;margin-top:20px;}',
+    '    th,td{border:1px solid #d8c8ad;padding:12px;vertical-align:top;text-align:left;}',
+    '    th{background:#f2eadf;}',
+    '    a{color:#0f766e;}',
+    '    code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}',
+    '    ul{margin:0;padding-left:18px;}',
+    '  </style>',
+    '</head>',
+    '<body>',
+    '  <main>',
+    `    <h1>${escapeHtml(groupName)}</h1>`,
+    '    <p>公开订阅清单，仅保留标题、状态和订阅链接。</p>',
+    '    <table>',
+    '      <thead><tr><th>标题</th><th>状态</th><th>订阅</th></tr></thead>',
+    '      <tbody>',
+  ];
+
+  for (const rule of groupRules) {
+    const feedTarget = buildFeedTarget(rule.route, baseUrl, '');
+    const titleCell = escapeHtml(feedTitles[rule.route] || '待获取');
+    const linksCell = renderPublicLinksCell({
+      feedTarget,
+      enabled: Boolean(routeStatusByRoute[rule.route]?.enabled),
+    });
+    lines.push(`        <tr><td>${titleCell}</td><td>${Boolean(routeStatusByRoute[rule.route]?.enabled) ? '✅ 已启用' : '⏸️ 已关闭'}</td><td>${linksCell}</td></tr>`);
+  }
+
+  lines.push('      </tbody>');
+  lines.push('    </table>');
+  lines.push('  </main>');
+  lines.push('</body>');
+  lines.push('</html>');
+  return `${lines.join('\n')}\n`;
 }
 
 async function loadPublishReport(reportPath) {
@@ -706,7 +803,7 @@ export async function buildReadme({
   currentRunId = process.env.GITHUB_RUN_ID ?? "",
   fetchImpl = fetch,
 }) {
-  const resolvedConfigPath = configPath ?? rulesDir ?? routeToConfigPath();
+  const resolvedConfigPath = path.resolve(configPath ?? rulesDir ?? routeToConfigPath());
   const resolvedStateDir = stateDir ?? "state";
   const analysis = await analyzeConfig(resolvedConfigPath);
   const rules = analysis.rules;
@@ -763,9 +860,50 @@ export async function buildReadme({
         }
       : null,
   });
+
+  const configRootDir = analysis.configRoot
+    ? path.resolve(analysis.configRoot)
+    : resolvedConfigPath.endsWith(".json")
+      ? path.join(path.dirname(resolvedConfigPath), routeToConfigPath())
+      : resolvedConfigPath;
+  const groupArtifacts = [];
+
+  for (const [groupName, groupRules] of groupRulesByGroup(rules)) {
+    const groupReadmePath = path.join(configRootDir, groupName, "README.md");
+    const groupCatalogPath = feedDir
+      ? path.join(path.resolve(feedDir), "groups", `${slugifyGroupName(groupName)}.html`)
+      : "";
+    const groupReadme = renderGroupReadme({
+      groupName,
+      groupRules,
+      baseUrl,
+      repoSlug,
+      feedTitles,
+      routeStatusByRoute,
+    });
+
+    await mkdir(path.dirname(groupReadmePath), { recursive: true });
+    await writeFile(groupReadmePath, groupReadme, "utf8");
+
+    if (groupCatalogPath) {
+      const groupCatalog = renderPublicGroupCatalog({
+        groupName,
+        groupRules,
+        baseUrl,
+        feedTitles,
+        routeStatusByRoute,
+      });
+      await mkdir(path.dirname(groupCatalogPath), { recursive: true });
+      await writeFile(groupCatalogPath, groupCatalog, "utf8");
+    }
+
+    groupArtifacts.push({ groupName, groupReadmePath, groupCatalogPath });
+  }
+
   await mkdir(path.dirname(outputFile), { recursive: true });
   await writeFile(outputFile, content, "utf8");
   return {
+    groupArtifacts,
     rules,
     diagnostics: analysis.diagnostics,
     hasFatalErrors: analysis.hasFatalErrors,
@@ -776,7 +914,6 @@ export async function buildReadme({
     publishReport,
   };
 }
-
 export function readArgs(argv) {
   const options = {
     configPath: process.env.REFEED_CONFIG_PATH ?? routeToConfigPath(),
