@@ -75,6 +75,7 @@ const KNOWN_NAMESPACE_URIS = new Map([
   ['dcterms', 'http://purl.org/dc/terms/'],
   ['geo', 'http://www.w3.org/2003/01/geo/wgs84_pos#'],
   ['georss', 'http://www.georss.org/georss'],
+  ['itunes', 'http://www.itunes.com/dtds/podcast-1.0.dtd'],
   ['media', 'http://search.yahoo.com/mrss/'],
   ['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
   ['slash', 'http://purl.org/rss/1.0/modules/slash/'],
@@ -306,6 +307,13 @@ function buildNamespaceAttributes(renderedFeed) {
   ]);
   const namespaceAttributes = {};
 
+  for (const [prefix, uri] of Object.entries(renderedFeed.namespaces ?? {})) {
+    if (!prefix || !uri) {
+      continue;
+    }
+    namespaceAttributes[`@_xmlns:${prefix}`] = uri;
+  }
+
   for (const prefix of prefixes) {
     const uri = KNOWN_NAMESPACE_URIS.get(prefix);
     if (!uri) {
@@ -319,10 +327,17 @@ function buildNamespaceAttributes(renderedFeed) {
 
 export function parseRssDocument(xmlText) {
   const parsed = parser.parse(xmlText);
-  const channelNode = parsed?.rss?.channel;
+  const rssNode = parsed?.rss;
+  const channelNode = rssNode?.channel;
   if (!channelNode) {
     throw new Error('source feed is not RSS 2.0 channel XML');
   }
+
+  const namespaces = Object.fromEntries(
+    Object.entries(rssNode)
+      .filter(([key, value]) => key.startsWith('@_xmlns:') && typeof value === 'string')
+      .map(([key, value]) => [key.slice('@_xmlns:'.length), value])
+  );
 
   const normalizedChannel = normalizeNode(channelNode);
   const itemNodes = asArray(normalizedChannel.item).map((item) => normalizeNode(item));
@@ -331,6 +346,7 @@ export function parseRssDocument(xmlText) {
   return {
     channel: normalizedChannel,
     items: itemNodes.filter((item) => item && typeof item === 'object'),
+    namespaces,
   };
 }
 
@@ -417,7 +433,11 @@ export function renderRule(rule, sourceFeed, publicBaseUrl) {
     );
   }
 
-  return { channel, items };
+  return {
+    channel,
+    items,
+    namespaces: sourceFeed.namespaces ?? {},
+  };
 }
 
 export function buildRssXml(renderedFeed) {

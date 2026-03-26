@@ -78,6 +78,21 @@ const RSS_WITH_NAMESPACED_CONTENT = `<?xml version="1.0" encoding="UTF-8"?>
   </channel>
 </rss>`;
 
+const RSS_WITH_ITUNES_DURATION = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Podcast Feed</title>
+    <link>https://example.com/podcast</link>
+    <item>
+      <title>Podcast Item</title>
+      <link>https://example.com/podcast-item</link>
+      <description>Episode summary</description>
+      <itunes:duration>0:17:10</itunes:duration>
+      <guid>podcast-item</guid>
+    </item>
+  </channel>
+</rss>`;
+
 const RSS_CHANNEL_ONLY = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -299,6 +314,23 @@ test("buildRssXml declares namespaces required by prefixed RSS fields", () => {
 
   const parsed = parseRssDocument(xml);
   assert.match(parsed.items[0]["content:encoded"], /data-pm-slice/u);
+});
+
+test("buildRssXml preserves source namespaces for prefixed RSS fields outside the built-in map", () => {
+  const rendered = renderRule(
+    {
+      route: "demo/podcast",
+      source: "https://example.com/podcast.xml",
+    },
+    parseRssDocument(RSS_WITH_ITUNES_DURATION),
+    "https://feeds.example.com"
+  );
+
+  const xml = buildRssXml(rendered);
+  assert.match(xml, /xmlns:itunes="http:\/\/www\.itunes\.com\/dtds\/podcast-1\.0\.dtd"/u);
+
+  const parsed = parseRssDocument(xml);
+  assert.equal(parsed.items[0]["itunes:duration"], "0:17:10");
 });
 
 test("publishFeeds preserves previous artifact for failed routes", async () => {
