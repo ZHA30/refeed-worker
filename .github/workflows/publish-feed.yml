@@ -33,12 +33,12 @@ on:
         description: 'Global fetch concurrency'
         required: false
         type: string
-        default: '2'
+        default: '5'
       per_host_concurrency:
         description: 'Per-host fetch concurrency'
         required: false
         type: string
-        default: '2'
+        default: '5'
       config_repository:
         description: 'Private config/state repository slug'
         required: false
