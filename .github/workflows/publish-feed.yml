@@ -33,7 +33,7 @@ on:
         description: 'Global fetch concurrency'
         required: false
         type: string
-        default: '5'
+        default: '2'
       per_host_concurrency:
         description: 'Per-host fetch concurrency'
         required: false
